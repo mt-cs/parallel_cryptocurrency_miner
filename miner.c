@@ -35,6 +35,8 @@
 #include <sys/time.h>
 
 #include "sha1.h"
+#include "logger.h"
+#define MAX_INPUT_LENGTH (10)
 
 unsigned long long total_inversions;
 
@@ -89,6 +91,27 @@ uint64_t mine(char *data_block, uint32_t difficulty_mask,
     return 0;
 }
 
+int get_strtol(char *num)
+{
+    char *rest;
+    long threads = strtol(num, &rest, MAX_INPUT_LENGTH);
+    return (int) threads;
+}
+
+
+int get_bitcount(unsigned char x) 
+{ 
+   int count;
+   
+   for (count=0; x != 0; x>>=1)
+   {
+      if ( x & 01)
+         count++;
+   }
+
+   return count;
+}
+
 int main(int argc, char *argv[]) {
 
     if (argc != 4) {
@@ -96,15 +119,26 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    int num_threads = 1; // TODO
+    //int num_threads = 1; // TODO argv[1]
+    char *str_threads = argv[1];
+    int num_threads = get_strtol(str_threads);
     printf("Number of threads: %d\n", num_threads);
 
     // TODO we have hard coded the difficulty to 20 bits (0x0000FFF). This is a
     // fairly quick computation -- something like 28 will take much longer.  You
     // should allow the user to specify anywhere between 1 and 32 bits of zeros.
+
+    // for loop start with in that start to 0, set the bit to 1 or 0 depending on user input
+    // bit manipulation bit wise or . set individual bit to 1 or 0 
     uint32_t difficulty_mask = 0x00000FFF;
-    printf("  Difficulty Mask: ");
+    
+    printf("  Difficulty Mask: "); //argv[2]
+    char *diff_str = argv[2];
+    LOG("Difficulty mask string: %s\n", diff_str);
+    //uint32_t difficulty_mask = argv[2];
+    LOG("%d\n", difficulty_mask);
     print_binary32(difficulty_mask);
+    
 
     /* We use the input string passed in (argv[3]) as our block data. In a
      * complete bitcoin miner implementation, the block data would be composed
@@ -114,35 +148,49 @@ int main(int argc, char *argv[]) {
 
     printf("\n----------- Starting up miner threads!  -----------\n\n");
 
-    double start_time = get_time();
+    // double start_time = get_time();
 
-    uint8_t digest[SHA1_HASH_SIZE];
+    // uint8_t digest[SHA1_HASH_SIZE];
 
-    /* Mine the block. */
-    uint64_t nonce = mine(
-            bitcoin_block_data,
-            difficulty_mask,
-            1, UINT64_MAX,
-            digest);
+    // // main thread producer
+    // // create one worker thread to start out with
+    // // refactor the prod cons to make it work
 
-    double end_time = get_time();
+    // /* Mine the block. */ // can't call pthread routine because it only takes one parameter
+    // uint64_t nonce = mine(
+    //         bitcoin_block_data,
+    //         difficulty_mask,
+    //         1, UINT64_MAX, // range of nonce
+    //         digest);
 
-    if (nonce == 0) {
-        printf("No solution found!\n");
-        return 1;
-    }
+    // double end_time = get_time();
 
-    /* When printed in hex, a SHA-1 checksum will be 40 characters. */
-    char solution_hash[41];
-    sha1tostring(solution_hash, digest);
+    // // worker thread split the range of the nonce
+    // // have each thread do 100 nonces
+    // // on the producer (main thread) create a new task to work on, e.g. 1 - 100
+    // // worker thread 0 found task, signal it, pick the task and work on it
+    // // main thread keeps repeatingly creating task for the workers
+    // // rather than one thead start from the middle like pithread
+    // // workers keep grabbing task from main thread and working silmuntaneosly
+    // // e.g. worker now create 101 - 200
+    // // worker thread 1 found task, signal it, pick the task and work on it
+    
+    // if (nonce == 0) {
+    //     printf("No solution found!\n");
+    //     return 1;
+    // }
 
-    printf("Solution found by thread %d:\n", 0);
-    printf("Nonce: %lu\n", nonce);
-    printf(" Hash: %s\n", solution_hash);
+    // /* When printed in hex, a SHA-1 checksum will be 40 characters. */
+    // char solution_hash[41];
+    // sha1tostring(solution_hash, digest);
 
-    double total_time = end_time - start_time;
-    printf("%llu hashes in %.2fs (%.2f hashes/sec)\n",
-            total_inversions, total_time, total_inversions / total_time);
+    // printf("Solution found by thread %d:\n", 0);
+    // printf("Nonce: %lu\n", nonce);
+    // printf(" Hash: %s\n", solution_hash);
+
+    // double total_time = end_time - start_time;
+    // printf("%llu hashes in %.2fs (%.2f hashes/sec)\n",
+    //         total_inversions, total_time, total_inversions / total_time);
 
     return 0;
 }
