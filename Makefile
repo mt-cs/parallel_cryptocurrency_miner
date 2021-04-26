@@ -6,10 +6,10 @@ LOGGER ?= 1
 
 # Compiler/linker flags
 CFLAGS += -g -Wall -fPIC -DLOGGER=$(LOGGER)
-LDLIBS += -lm
+LDLIBS += -lm -lpthread
 LDFLAGS += -L. -Wl,-rpath='$$ORIGIN'
 
-src=miner.c sha1.c
+src=miner.c sha1.c elist.c
 obj=$(src:.c=.o)
 
 all: $(bin) libminer.so
@@ -20,7 +20,7 @@ $(bin): $(obj)
 libminer.so: $(obj)
 	$(CC) $(CFLAGS) $(LDLIBS) $(LDFLAGS) $(obj) -shared -o $@
 
-miner.o: miner.c miner.h sha1.h logger.h
+miner.o: miner.c miner.h sha1.h logger.h elist.h
 sha1.o: sha1.c sha1.h logger.h
 
 clean:

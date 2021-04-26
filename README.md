@@ -56,7 +56,7 @@ To compile and run:
 
 ```bash
 make
-./jellyfish
+./miner
 ```
 
 ### Testing
