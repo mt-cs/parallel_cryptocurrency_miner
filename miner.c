@@ -45,6 +45,7 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t condc = PTHREAD_COND_INITIALIZER;
 pthread_cond_t condp = PTHREAD_COND_INITIALIZER;
 
+int final_thread;
 uint8_t final_result_digest[SHA1_HASH_SIZE];
 struct elist *task_list; 
 uint64_t final_result_nonce = 0;
@@ -52,6 +53,7 @@ unsigned long long total_inversions;
 typedef struct thread_struct {
     uint32_t difficulty_mask;
     char *bitcoin_block_data;
+    int thread_count;
 } t_struct;
 
 double get_time()
@@ -129,7 +131,7 @@ void *consumer_thread(void *ptr) {
 
         uint8_t digest_con[SHA1_HASH_SIZE];
 
-        /* Mine the block. */ //-----------------------> go to consumer
+        /* Mine the block. */
         uint64_t nonce = mine(
                 thread_data->bitcoin_block_data,
                 thread_data->difficulty_mask,
@@ -137,12 +139,19 @@ void *consumer_thread(void *ptr) {
                 digest_con);
         
         if (nonce != 0) {
+            //TODO LOCK IT HERE TOO
+            pthread_mutex_lock(&mutex);
             final_result_nonce = nonce;
+            final_thread = thread_data->thread_count;
             memcpy(final_result_digest, digest_con, sizeof(digest_con));
             LOG("Found final result nonce: %ld\n", final_result_nonce);
+            pthread_mutex_unlock(&mutex);
             break;
         }
     }
+    // TODO: ADD SIGNAL
+    pthread_cond_signal(&condp); // send signal
+    free(thread_data);
     return 0;
 }
 
@@ -184,14 +193,15 @@ int main(int argc, char *argv[]) {
 
     printf("\n----------- Starting up miner threads!  -----------\n\n");
 
-    task_list = elist_create(num_threads * 2, sizeof(uint32_t));
-    t_struct arg_thread;
-    arg_thread.difficulty_mask = difficulty_mask;
-    arg_thread.bitcoin_block_data = bitcoin_block_data;
+    task_list = elist_create(num_threads * 4, sizeof(uint32_t)); // TODO: SIZE???
 
     pthread_t *threads = malloc(sizeof(pthread_t) * num_threads);
     for (int i = 0; i < num_threads; ++i) {
-        pthread_create(&threads[i], NULL, consumer_thread, (void *)&arg_thread);
+        t_struct *arg_thread = malloc(sizeof(t_struct));
+        arg_thread->difficulty_mask = difficulty_mask;
+        arg_thread->bitcoin_block_data = bitcoin_block_data;
+        arg_thread->thread_count = i;
+        pthread_create(&threads[i], NULL, consumer_thread, (void *)arg_thread);
     }
 
     double start_time = get_time();
@@ -202,7 +212,7 @@ int main(int argc, char *argv[]) {
         pthread_mutex_lock(&mutex);
         while (elist_size(task_list) == elist_capacity(task_list)) { // while list is full keep waiting
             pthread_cond_wait(&condp, &mutex); // sleep until they consume it
-            printf("%ld", elist_size(task_list));
+            printf("%ld ", elist_size(task_list));
         }
         create_task(curr_nonce);
         curr_nonce += TASK_RANGE;
@@ -225,16 +235,18 @@ int main(int argc, char *argv[]) {
     sha1tostring(solution_hash, final_result_digest);
 
     // TODO: handle sigint
-
-    printf("Solution found by thread %d:\n", 0); //TODO: ASK
+    printf("Solution found by thread %d:\n", final_thread);
     printf("Nonce: %lu\n", final_result_nonce);
     printf(" Hash: %s\n", solution_hash);
 
     double total_time = end_time - start_time;
     printf("%llu hashes in %.2fs (%.2f hashes/sec)\n",
             total_inversions, total_time, total_inversions / total_time);
-
+    elist_destroy(task_list);
     return 0;
 }
 
 
+// DEADLOCK
+// the producer goes to sleep
+// the consumer are waiting for threads

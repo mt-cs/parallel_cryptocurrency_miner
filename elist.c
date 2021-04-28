@@ -43,10 +43,10 @@ struct elist *elist_create(size_t list_sz, size_t item_sz)
 	list->size = 0; // the actual number of element. Here empty list we haven't put anything in the "array list"
 
 	size_t storage_bytes = list->capacity * list->item_sz;
-	LOG("Initializing new elist: capacity=[%zu], item_sz=[%zu], bytes=[%zu]\n",
-			list->capacity,
-			list->item_sz,
-			storage_bytes);
+	// LOG("Initializing new elist: capacity=[%zu], item_sz=[%zu], bytes=[%zu]\n",
+	// 		list->capacity,
+	// 		list->item_sz,
+	// 		storage_bytes);
 			
 	list->element_storage = malloc(storage_bytes);
 
