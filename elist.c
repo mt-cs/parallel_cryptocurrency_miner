@@ -2,7 +2,6 @@
  * @file elist.c
  */
 
-
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -14,6 +13,7 @@
 
 #define DEFAULT_INIT_SZ 10 //preprocesser macro
 #define RESIZE_MULTIPLIER 2 //double the element
+
 
 /**
 * checks if index is valid.
@@ -41,17 +41,17 @@ struct elist *elist_create(size_t list_sz, size_t item_sz)
 	if (list_sz == 0) {
 		list_sz = DEFAULT_INIT_SZ;
 	}
-	
+
 	list->capacity = list_sz; // the capacity
 	list->item_sz = item_sz;
 	list->size = 0; // the actual number of element. Here empty list we haven't put anything in the "array list"
 
 	size_t storage_bytes = list->capacity * list->item_sz;
-	// LOG("Initializing new elist: capacity=[%zu], item_sz=[%zu], bytes=[%zu]\n",
-	// 		list->capacity,
-	// 		list->item_sz,
-	// 		storage_bytes);
-			
+	LOG("Initializing new elist: capacity=[%zu], item_sz=[%zu], bytes=[%zu]\n",
+			list->capacity,
+			list->item_sz,
+			storage_bytes);
+
 	list->element_storage = malloc(storage_bytes);
 
 	/*Check if returns NULL */
@@ -96,7 +96,7 @@ int elist_set_capacity(struct elist *list, size_t capacity)
 		perror("realloc");
 		return -1;
 	}	
-	
+
 	list->capacity = capacity;
 	if (list->size > capacity) {
 		list->size = capacity;
@@ -136,7 +136,7 @@ ssize_t elist_add(struct elist *list, void *item)
 		}
 	}
 	size_t idx = list->size++;
-	void *item_ptr = (int *)list->element_storage + idx * list->item_sz;
+	void *item_ptr = list->element_storage + idx * list->item_sz;
 	memcpy(item_ptr, item, list->item_sz);
     return idx;
 }
@@ -161,7 +161,7 @@ void *elist_add_new(struct elist *list)
 	}
 	size_t idx = list->size++;
 	size_t pos = idx * list->item_sz;
-	void *item_ptr = (int *)list->element_storage + pos; // pointer to the start of the storage
+	void *item_ptr = list->element_storage + pos; // pointer to the start of the storage
     return item_ptr;
 }
 
@@ -179,7 +179,7 @@ int elist_set(struct elist *list, size_t idx, void *item)
 	if(!idx_is_valid(list, idx)){
 		return -1;
 	}
-	memcpy((int *)list->element_storage + idx * list->item_sz, item, list->item_sz);
+	memcpy(list->element_storage + idx * list->item_sz, item, list->item_sz);
     return 0;
 }
 
@@ -196,7 +196,7 @@ void *elist_get(struct elist *list, size_t idx)
 	if (idx >= list->size) {
 		return NULL;
 	}
-    return (int *)list->element_storage + idx * list->item_sz;
+    return list->element_storage + idx * list->item_sz;
 }
 
 /**
@@ -226,15 +226,15 @@ int elist_remove(struct elist *list, size_t idx)
 		fprintf(stderr, "Out of index!");
 		return -1;
 	}
-	memmove((int *)list->element_storage + idx * list->item_sz,
-			(int *)list->element_storage + (idx + 1) * list->item_sz,
+	memmove(list->element_storage + idx * list->item_sz,
+			list->element_storage + (idx + 1) * list->item_sz,
 			(list->size - idx - 1) * list->item_sz);
 	// for(size_t j = idx + 1; j < list->size; j++) {
 	// 	void* item = elist_get(list, j);
 	// 	elist_set(list, j - 1, item);
 	// }
 	list->size--;
-	
+
     return 0;
 }
 
@@ -274,7 +274,7 @@ ssize_t elist_index_of(struct elist *list, void *item)
 {
 	size_t index = 0;
 	while(index < list->size) {
-		void *temp = (int *)list->element_storage + index*list->item_sz;
+		void *temp = list->element_storage + index*list->item_sz;
 		if (memcmp(item, temp, list->item_sz)==0) {
 			return index;
 		}
