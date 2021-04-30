@@ -119,7 +119,6 @@ void *consumer_thread(void *ptr) {
         pthread_mutex_lock(&mutex);
         while (elist_size(task_list) == 0) { 
             pthread_cond_wait(&condc, &mutex); // sleep until signaled
-            //LOGP("Consumer Sleeping...\n");
         }
         u_int64_t *p_task_consumed = elist_get(task_list, 0);
         u_int64_t task_consumed = *p_task_consumed;
@@ -142,17 +141,12 @@ void *consumer_thread(void *ptr) {
         if (nonce != 0) {
             //TODO LOCK IT HERE TOO
             pthread_mutex_lock(&mutex);
-            // if (final_result_nonce == 0 || final_result_nonce > nonce) {
-            //     LOGP("Nonce is smaller....\n");
-            //     final_result_nonce = nonce;
-            // }
             final_result_nonce = nonce;
-            LOGP("Outside if...\n");
             final_thread = thread_data->thread_count;
             memcpy(final_result_digest, digest_con, sizeof(digest_con));
             LOG("Found final result nonce: %lu\n", final_result_nonce);
             pthread_mutex_unlock(&mutex);
-            break;        
+            break;
         }
     }
     // TODO: ADD SIGNAL
@@ -175,7 +169,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    //int num_threads = 1;
+    //int num_threads = 1; // TODO
     char *str_threads = argv[1];
     int num_threads = get_strtol(str_threads);
     if (num_threads == 0) {
@@ -183,7 +177,9 @@ int main(int argc, char *argv[]) {
     }
     printf("Number of threads: %d\n", num_threads);
 
-    // allow the user to specify anywhere between 1 and 32 bits of zeros.
+    // TODO we have hard coded the difficulty to 20 bits (0x0000FFF). This is a
+    // fairly quick computation -- something like 28 will take much longer.  You
+    // should allow the user to specify anywhere between 1 and 32 bits of zeros.
     uint32_t difficulty_mask = 0x00000FFF;
     char *str_n_leading_zeros = argv[2];
     uint32_t nLeadingZeros = get_strtol(str_n_leading_zeros); // user input
@@ -232,10 +228,6 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    for (int i = 0; i < num_threads; ++i) {
-        pthread_join(threads[i], NULL);
-    }
-
     double end_time = get_time();
 
     if (final_result_nonce == 0) {
@@ -246,6 +238,7 @@ int main(int argc, char *argv[]) {
     /* When printed in hex, a SHA-1 checksum will be 40 characters. */
     char solution_hash[41];
     sha1tostring(solution_hash, final_result_digest);
+    // i * nonce --> 2 + num_threads
 
     // TODO: handle sigint
     printf("Solution found by thread %d:\n", final_thread);
@@ -265,6 +258,4 @@ int main(int argc, char *argv[]) {
 // --> deadlock
 // one of them is stuck on the condition wait either the producer and consumer. log before wait
 
-// TODO: TIME IS SLOW speedup 1.74
-
-//TODO Break a tie, use the smallest of the two
+// TODO: TIME IS SLOW
