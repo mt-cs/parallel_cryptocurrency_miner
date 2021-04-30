@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
 
     printf("\n----------- Starting up miner threads!  -----------\n\n");
 
-    task_list = elist_create(num_threads * 4, sizeof(uint32_t)); // TODO: SIZE???
+    task_list = elist_create(num_threads * 4, sizeof(uint64_t));
 
     pthread_t *threads = malloc(sizeof(pthread_t) * num_threads);
     for (int i = 0; i < num_threads; ++i) {
@@ -249,5 +249,7 @@ int main(int argc, char *argv[]) {
 // DEADLOCK
 // the producer goes to sleep
 // the consumer are waiting for threads
+// --> deadlock
+// one of them is stuck on the condition wait either the producer and consumer. log before wait
 
 // TODO: TIME IS SLOW
