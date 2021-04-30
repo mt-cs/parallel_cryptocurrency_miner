@@ -144,7 +144,7 @@ void *consumer_thread(void *ptr) {
             final_result_nonce = nonce;
             final_thread = thread_data->thread_count;
             memcpy(final_result_digest, digest_con, sizeof(digest_con));
-            LOG("Found final result nonce: %ld\n", final_result_nonce);
+            LOG("Found final result nonce: %lu\n", final_result_nonce);
             pthread_mutex_unlock(&mutex);
             break;
         }
@@ -154,7 +154,6 @@ void *consumer_thread(void *ptr) {
     free(thread_data);
     return 0;
 }
-
 
 int get_strtol(char *num)
 {
@@ -212,7 +211,7 @@ int main(int argc, char *argv[]) {
         pthread_mutex_lock(&mutex);
         while (elist_size(task_list) == elist_capacity(task_list)) { // while list is full keep waiting
             pthread_cond_wait(&condp, &mutex); // sleep until they consume it
-            printf("%ld ", elist_size(task_list));
+            //printf("%ld ", elist_size(task_list));
         }
         create_task(curr_nonce);
         curr_nonce += TASK_RANGE;
@@ -233,6 +232,7 @@ int main(int argc, char *argv[]) {
     /* When printed in hex, a SHA-1 checksum will be 40 characters. */
     char solution_hash[41];
     sha1tostring(solution_hash, final_result_digest);
+    // i * nonce --> 2 + num_threads
 
     // TODO: handle sigint
     printf("Solution found by thread %d:\n", final_thread);
@@ -246,7 +246,8 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-
 // DEADLOCK
 // the producer goes to sleep
 // the consumer are waiting for threads
+
+// TODO: TIME IS SLOW
