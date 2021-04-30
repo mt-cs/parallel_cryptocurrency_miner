@@ -119,6 +119,7 @@ void *consumer_thread(void *ptr) {
         pthread_mutex_lock(&mutex);
         while (elist_size(task_list) == 0) { 
             pthread_cond_wait(&condc, &mutex); // sleep until signaled
+            LOGP("Sleeping...\n");
         }
         u_int64_t *p_task_consumed = elist_get(task_list, 0);
         u_int64_t task_consumed = *p_task_consumed;
@@ -141,13 +142,17 @@ void *consumer_thread(void *ptr) {
         if (nonce != 0) {
             //TODO LOCK IT HERE TOO
             pthread_mutex_lock(&mutex);
+            // if (final_result_nonce == 0 || final_result_nonce > nonce) {
+            //     LOGP("Nonce is smaller....\n");
+            //     final_result_nonce = nonce;
+            // }
             final_result_nonce = nonce;
+            LOGP("Outside if...\n");
             final_thread = thread_data->thread_count;
             memcpy(final_result_digest, digest_con, sizeof(digest_con));
             LOG("Found final result nonce: %lu\n", final_result_nonce);
             pthread_mutex_unlock(&mutex);
-            break;
-        }
+            break;        }
     }
     // TODO: ADD SIGNAL
     pthread_cond_signal(&condp); // send signal
@@ -172,6 +177,9 @@ int main(int argc, char *argv[]) {
     //int num_threads = 1; // TODO
     char *str_threads = argv[1];
     int num_threads = get_strtol(str_threads);
+    if (num_threads == 0) {
+        return EXIT_FAILURE;
+    }
     printf("Number of threads: %d\n", num_threads);
 
     // TODO we have hard coded the difficulty to 20 bits (0x0000FFF). This is a
@@ -206,20 +214,27 @@ int main(int argc, char *argv[]) {
     double start_time = get_time();
 
     u_int64_t curr_nonce = 1;
-    while (final_result_nonce < UINT64_MAX)
+    while (1)
     {
         pthread_mutex_lock(&mutex);
-        while (elist_size(task_list) == elist_capacity(task_list)) { // while list is full keep waiting
+        while (elist_size(task_list) == elist_capacity(task_list)
+            && final_result_nonce == 0) { // while list is full keep waiting
             pthread_cond_wait(&condp, &mutex); // sleep until they consume it
             //printf("%ld ", elist_size(task_list));
         }
-        create_task(curr_nonce);
-        curr_nonce += TASK_RANGE;
-        pthread_cond_signal(&condc);
-        pthread_mutex_unlock(&mutex);
-        if (final_result_nonce != 0) {
-            break;
+        if (final_result_nonce == 0) {
+          create_task(curr_nonce);
+          curr_nonce += TASK_RANGE;
+          pthread_cond_signal(&condc);
+          pthread_mutex_unlock(&mutex);
+        } else {
+          pthread_mutex_unlock(&mutex);
+          break;
         }
+    }
+
+    for (int i = 0; i < num_threads; ++i) {
+        pthread_join(threads[i], NULL);
     }
 
     double end_time = get_time();

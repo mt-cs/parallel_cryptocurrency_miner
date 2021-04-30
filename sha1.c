@@ -1,5 +1,8 @@
-#include <stdio.h>
+/**
+ * @file sha1.c
+ */
 
+#include <stdio.h>
 #include "sha1.h"
 
 /******************** See RFC 4634 for details ******************/
