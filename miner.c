@@ -119,6 +119,7 @@ void *consumer_thread(void *ptr) {
         pthread_mutex_lock(&mutex);
         while (elist_size(task_list) == 0) { 
             pthread_cond_wait(&condc, &mutex); // sleep until signaled
+            //LOG("Sleeping...%lu\n", elist_size(task_list));
         }
         u_int64_t *p_task_consumed = elist_get(task_list, 0);
         u_int64_t task_consumed = *p_task_consumed;
@@ -141,7 +142,10 @@ void *consumer_thread(void *ptr) {
         if (nonce != 0) {
             //TODO LOCK IT HERE TOO
             pthread_mutex_lock(&mutex);
-            final_result_nonce = nonce;
+            if (final_result_nonce == 0 || final_result_nonce > nonce) {
+                final_result_nonce = nonce;
+            }
+            //final_result_nonce = nonce;
             final_thread = thread_data->thread_count;
             memcpy(final_result_digest, digest_con, sizeof(digest_con));
             LOG("Found final result nonce: %lu\n", final_result_nonce);
@@ -151,7 +155,7 @@ void *consumer_thread(void *ptr) {
     }
     // TODO: ADD SIGNAL
     pthread_cond_signal(&condp); // send signal
-    free(thread_data);
+    // free(thread_data);
     return 0;
 }
 
@@ -198,12 +202,14 @@ int main(int argc, char *argv[]) {
     task_list = elist_create(num_threads * 4, sizeof(uint64_t));
 
     pthread_t *threads = malloc(sizeof(pthread_t) * num_threads);
-    for (int i = 0; i < num_threads; ++i) {
-        t_struct *arg_thread = malloc(sizeof(t_struct));
-        arg_thread->difficulty_mask = difficulty_mask;
-        arg_thread->bitcoin_block_data = bitcoin_block_data;
-        arg_thread->thread_count = i;
-        pthread_create(&threads[i], NULL, consumer_thread, (void *)arg_thread);
+    t_struct **arg_thread = malloc(sizeof(t_struct*) * num_threads);
+
+    for (int i = 0; i < num_threads; ++i) {    
+        arg_thread[i] = malloc(sizeof(t_struct));
+        arg_thread[i]->difficulty_mask = difficulty_mask;
+        arg_thread[i]->bitcoin_block_data = bitcoin_block_data;
+        arg_thread[i]->thread_count = i;
+        pthread_create(&threads[i], NULL, consumer_thread, (void *)arg_thread[i]);
     }
 
     double start_time = get_time();
@@ -228,12 +234,15 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    
+
     double end_time = get_time();
 
     if (final_result_nonce == 0) {
         printf("No solution found!\n");
         return 1;
     }
+    
 
     /* When printed in hex, a SHA-1 checksum will be 40 characters. */
     char solution_hash[41];
@@ -248,7 +257,13 @@ int main(int argc, char *argv[]) {
     double total_time = end_time - start_time;
     printf("%llu hashes in %.2fs (%.2f hashes/sec)\n",
             total_inversions, total_time, total_inversions / total_time);
+    
     elist_destroy(task_list);
+    for(int i=0; i<num_threads; i++)
+        free(arg_thread[i]);
+    free(arg_thread);
+    free(threads);
+    pthread_exit(0);
     return 0;
 }
 
