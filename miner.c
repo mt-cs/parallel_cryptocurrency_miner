@@ -147,12 +147,13 @@ void *consumer_thread(void *ptr) {
             // final_result_nonce = nonce;
             final_thread = thread_data->thread_count;
             memcpy(final_result_digest, digest_con, sizeof(digest_con));
-            //LOG("Found final result nonce: %lu\n", final_result_nonce);
+            LOG("Found final result nonce: %lu\n", final_result_nonce);
             pthread_mutex_unlock(&mutex);
             break;
         }
     }
     pthread_cond_signal(&condp); // send signal
+    LOGP("Consumer is signaling that we found the thread\n");
     //free(thread_data);
     return 0;
 }
@@ -228,6 +229,7 @@ int main(int argc, char *argv[]) {
           pthread_mutex_unlock(&mutex);
         } else {
           //pthread_cond_signal(&condc);
+          LOG("Producer received that we found nonce %lu\n", final_result_nonce);
           pthread_mutex_unlock(&mutex);
           break;
         }
