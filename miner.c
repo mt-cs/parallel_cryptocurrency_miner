@@ -108,24 +108,17 @@ uint64_t mine(char *data_block, uint32_t difficulty_mask,
             return nonce;
         }
     }
+
     return 0;
 }
 
 void *consumer_thread(void *ptr) {
     struct thread_struct* thread_data = (struct thread_struct*) ptr;
-    //pthread_detach(pthread_self());
 
     while (true) {
         pthread_mutex_lock(&mutex);
         while (elist_size(task_list) == 0) { 
-            if (final_result_nonce != 0) {
-                return 0;
-            }
             pthread_cond_wait(&condc, &mutex); // sleep until signaled
-            if (final_result_nonce != 0) {
-                return 0;
-            }
-            //LOG("Sleeping...%lu\n", elist_size(task_list));
         }
         u_int64_t *p_task_consumed = elist_get(task_list, 0);
         u_int64_t task_consumed = *p_task_consumed;
@@ -148,10 +141,7 @@ void *consumer_thread(void *ptr) {
         if (nonce != 0) {
             //TODO LOCK IT HERE TOO
             pthread_mutex_lock(&mutex);
-            if (final_result_nonce == 0 || final_result_nonce > nonce) {
-                final_result_nonce = nonce;
-            }
-            //final_result_nonce = nonce;
+            final_result_nonce = nonce;
             final_thread = thread_data->thread_count;
             memcpy(final_result_digest, digest_con, sizeof(digest_con));
             LOG("Found final result nonce: %lu\n", final_result_nonce);
@@ -227,7 +217,7 @@ int main(int argc, char *argv[]) {
         while (elist_size(task_list) == elist_capacity(task_list)
             && final_result_nonce == 0) { // while list is full keep waiting
             pthread_cond_wait(&condp, &mutex); // sleep until they consume it
-            printf("%ld ", elist_size(task_list));
+            //printf("%ld ", elist_size(task_list));
         }
         if (final_result_nonce == 0) {
           create_task(curr_nonce);
@@ -235,15 +225,10 @@ int main(int argc, char *argv[]) {
           pthread_cond_signal(&condc);
           pthread_mutex_unlock(&mutex);
         } else {
-          pthread_cond_signal(&condc);
           pthread_mutex_unlock(&mutex);
           break;
         }
     }
-
-    // for (int i = 0; i < num_threads; ++i) {
-    //     pthread_join(threads[i], NULL);
-    // }
 
     double end_time = get_time();
 
@@ -264,13 +249,13 @@ int main(int argc, char *argv[]) {
     double total_time = end_time - start_time;
     printf("%llu hashes in %.2fs (%.2f hashes/sec)\n",
             total_inversions, total_time, total_inversions / total_time);
-    
+            
     elist_destroy(task_list);
-    for(int i = 0; i < num_threads; i++)
+    for(int i = 0; i < num_threads; ++i){
         free(arg_thread[i]);
+    }
     free(arg_thread);
     free(threads);
-    pthread_exit(0);
     return 0;
 }
 
