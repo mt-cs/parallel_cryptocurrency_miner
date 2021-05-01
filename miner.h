@@ -20,6 +20,10 @@ double get_time();
  */
 void print_binary32(uint32_t num);
 
+/**
+ * Converting user input to int
+ * @param num user input char*
+ */
 int get_strtol(char *num);
 
 int get_bitcount(unsigned char x);

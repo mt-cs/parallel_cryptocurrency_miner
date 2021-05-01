@@ -39,8 +39,7 @@
 #include "logger.h"
 
 #define MAX_INPUT_LENGTH (10)
-#define TASK_RANGE (30)
-
+#define TASK_RANGE (110)
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t condc = PTHREAD_COND_INITIALIZER;
 pthread_cond_t condp = PTHREAD_COND_INITIALIZER;
@@ -141,7 +140,11 @@ void *consumer_thread(void *ptr) {
         
         if (nonce != 0) {
             pthread_mutex_lock(&mutex);
-            final_result_nonce = nonce;
+            if (final_result_nonce == 0 || final_result_nonce > nonce) {
+                LOG("Nonce: %lu, Current final: %lu....\n", nonce, final_result_nonce);
+                final_result_nonce = nonce;
+            }
+            // final_result_nonce = nonce;
             final_thread = thread_data->thread_count;
             memcpy(final_result_digest, digest_con, sizeof(digest_con));
             //LOG("Found final result nonce: %lu\n", final_result_nonce);
@@ -168,7 +171,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    //int num_threads = 1; // TODO
+    // int num_threads = 1;
     char *str_threads = argv[1];
     int num_threads = get_strtol(str_threads);
     if (num_threads == 0) {
@@ -176,12 +179,10 @@ int main(int argc, char *argv[]) {
     }
     printf("Number of threads: %d\n", num_threads);
 
-    // TODO we have hard coded the difficulty to 20 bits (0x0000FFF). This is a
-    // fairly quick computation -- something like 28 will take much longer.  You
-    // should allow the user to specify anywhere between 1 and 32 bits of zeros.
+    // Allow the user to specify anywhere between 1 and 32 bits of zeros.
     uint32_t difficulty_mask = 0x00000FFF;
     char *str_n_leading_zeros = argv[2];
-    uint32_t nLeadingZeros = get_strtol(str_n_leading_zeros); // user input
+    uint32_t nLeadingZeros = get_strtol(str_n_leading_zeros);
     difficulty_mask = (1 << (32 - nLeadingZeros)) - 1;
     printf("  Difficulty Mask: ");
     print_binary32(difficulty_mask);
@@ -234,10 +235,10 @@ int main(int argc, char *argv[]) {
 
     double end_time = get_time();
 
-    //TODO: pthread join
+    // TODO: pthread join
     for (int i = 0; i < num_threads; ++i) {
-        //LOG("Joint thread: %d\n", i);
-        //pthread_join(threads[i], NULL);
+        // LOG("Joint thread: %d\n", i);
+        // pthread_join(threads[i], NULL);
         pthread_detach(threads[i]);
     }
 
@@ -272,5 +273,4 @@ int main(int argc, char *argv[]) {
 // the consumer are waiting for threads
 // --> deadlock
 // one of them is stuck on the condition wait either the producer and consumer. log before wait
-
-// TODO: TIME IS SLOW
+// Can't pthread joint
