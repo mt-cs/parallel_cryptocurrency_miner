@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
-
+#include <stdint.h>
 #include "elist.h"
 #include "logger.h"
 
@@ -136,7 +136,7 @@ ssize_t elist_add(struct elist *list, void *item)
 		}
 	}
 	size_t idx = list->size++;
-	void *item_ptr = list->element_storage + idx * list->item_sz;
+	void *item_ptr = (char *)list->element_storage + idx * list->item_sz;
 	memcpy(item_ptr, item, list->item_sz);
     return idx;
 }
@@ -161,7 +161,7 @@ void *elist_add_new(struct elist *list)
 	}
 	size_t idx = list->size++;
 	size_t pos = idx * list->item_sz;
-	void *item_ptr = list->element_storage + pos; // pointer to the start of the storage
+	void *item_ptr = (char *)list->element_storage + pos; // pointer to the start of the storage
     return item_ptr;
 }
 
@@ -179,7 +179,7 @@ int elist_set(struct elist *list, size_t idx, void *item)
 	if(!idx_is_valid(list, idx)){
 		return -1;
 	}
-	memcpy(list->element_storage + idx * list->item_sz, item, list->item_sz);
+	memcpy((char *)list->element_storage + idx * list->item_sz, item, list->item_sz);
     return 0;
 }
 
@@ -196,7 +196,7 @@ void *elist_get(struct elist *list, size_t idx)
 	if (idx >= list->size) {
 		return NULL;
 	}
-    return list->element_storage + idx * list->item_sz;
+    return (char *)list->element_storage + idx * list->item_sz;
 }
 
 /**
@@ -274,7 +274,7 @@ ssize_t elist_index_of(struct elist *list, void *item)
 {
 	size_t index = 0;
 	while(index < list->size) {
-		void *temp = list->element_storage + index*list->item_sz;
+		void *temp = (char *)list->element_storage + index*list->item_sz;
 		if (memcmp(item, temp, list->item_sz)==0) {
 			return index;
 		}

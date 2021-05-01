@@ -39,7 +39,7 @@
 #include "logger.h"
 
 #define MAX_INPUT_LENGTH (10)
-#define TASK_RANGE (10)
+#define TASK_RANGE (30)
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t condc = PTHREAD_COND_INITIALIZER;
@@ -65,7 +65,7 @@ double get_time()
 
 void create_task(uint64_t first_nonce_in_range) {
     elist_add(task_list, &first_nonce_in_range);
-    //LOG("Add task: %ld\n", first_nonce_in_range);
+    //LOG("Add task: %lu\n", first_nonce_in_range);
 }
 
 void print_binary32(uint32_t num) {
@@ -108,22 +108,23 @@ uint64_t mine(char *data_block, uint32_t difficulty_mask,
             return nonce;
         }
     }
-
     return 0;
 }
 
 void *consumer_thread(void *ptr) {
+    pthread_detach(pthread_self());
     struct thread_struct* thread_data = (struct thread_struct*) ptr;
 
     while (true) {
         pthread_mutex_lock(&mutex);
         while (elist_size(task_list) == 0) { 
             pthread_cond_wait(&condc, &mutex); // sleep until signaled
+            //LOG("Consumer is sleeping %lu\n", elist_size(task_list));
         }
         u_int64_t *p_task_consumed = elist_get(task_list, 0);
         u_int64_t task_consumed = *p_task_consumed;
         elist_remove(task_list, 0);
-        //LOG("Consuming: %d\n", task_consumed); // print consuming
+        //LOG("Consuming: %lu\n", task_consumed); // print consuming
 
         /* Wake up the producer */
         pthread_cond_signal(&condp); // send signal
@@ -139,19 +140,17 @@ void *consumer_thread(void *ptr) {
                 digest_con);
         
         if (nonce != 0) {
-            //TODO LOCK IT HERE TOO
             pthread_mutex_lock(&mutex);
             final_result_nonce = nonce;
             final_thread = thread_data->thread_count;
             memcpy(final_result_digest, digest_con, sizeof(digest_con));
-            LOG("Found final result nonce: %lu\n", final_result_nonce);
+            //LOG("Found final result nonce: %lu\n", final_result_nonce);
             pthread_mutex_unlock(&mutex);
             break;
         }
     }
-    // TODO: ADD SIGNAL
     pthread_cond_signal(&condp); // send signal
-    // free(thread_data);
+    //free(thread_data);
     return 0;
 }
 
@@ -205,6 +204,7 @@ int main(int argc, char *argv[]) {
         arg_thread[i]->difficulty_mask = difficulty_mask;
         arg_thread[i]->bitcoin_block_data = bitcoin_block_data;
         arg_thread[i]->thread_count = i;
+        //LOG("Create thread: %d\n", i);
         pthread_create(&threads[i], NULL, consumer_thread, (void *)arg_thread[i]);
     }
 
@@ -216,6 +216,7 @@ int main(int argc, char *argv[]) {
         pthread_mutex_lock(&mutex);
         while (elist_size(task_list) == elist_capacity(task_list)
             && final_result_nonce == 0) { // while list is full keep waiting
+            //LOG("Producer is sleeping %ld\n", elist_size(task_list));
             pthread_cond_wait(&condp, &mutex); // sleep until they consume it
             //printf("%ld ", elist_size(task_list));
         }
@@ -225,12 +226,20 @@ int main(int argc, char *argv[]) {
           pthread_cond_signal(&condc);
           pthread_mutex_unlock(&mutex);
         } else {
+          //pthread_cond_signal(&condc);
           pthread_mutex_unlock(&mutex);
           break;
         }
     }
 
     double end_time = get_time();
+
+    //TODO: pthread join
+    for (int i = 0; i < num_threads; ++i) {
+        //LOG("Joint thread: %d\n", i);
+        //pthread_join(threads[i], NULL);
+        pthread_detach(threads[i]);
+    }
 
     if (final_result_nonce == 0) {
         printf("No solution found!\n");
@@ -241,7 +250,6 @@ int main(int argc, char *argv[]) {
     char solution_hash[41];
     sha1tostring(solution_hash, final_result_digest);
 
-    // TODO: handle sigint
     printf("Solution found by thread %d:\n", final_thread);
     printf("Nonce: %lu\n", final_result_nonce);
     printf(" Hash: %s\n", solution_hash);
@@ -249,7 +257,7 @@ int main(int argc, char *argv[]) {
     double total_time = end_time - start_time;
     printf("%llu hashes in %.2fs (%.2f hashes/sec)\n",
             total_inversions, total_time, total_inversions / total_time);
-            
+
     elist_destroy(task_list);
     for(int i = 0; i < num_threads; ++i){
         free(arg_thread[i]);
