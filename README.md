@@ -24,7 +24,7 @@ Number of threads: 4
 Solution found by thread 3:
 Nonce: 10211906
  Hash: 0000001209850F7AB3EC055248EE4F1B032D39D0
-10221196 hashes in 0.26s (39312292.30 hashes/sec)
+10221196 hashes in 5.63s (39312292.30 hashes/sec)
 ```
 In this example, 4 threads are used to find the solution to the block: the nonce that satisfies the given difficulty (24 leading zeros in this case). 
 
@@ -40,16 +40,11 @@ Note that the resulting hash has 6 zeros, which is what we’d expect: 24 bit di
 ### Included Files
 There are several files included. These are:
    - <b>Makefile</b>: Including to compile and run the program.
-   - <b>miner.c</b>: The program driver.
-   - <b>sha1.c</b>: Contains shell history data structures and retrieval functions.
-   - <b>ui.c</b>: Text-based UI functionality, primarily concerned with interacting with the readline library.
-   - <b>util.c</b>: Util to tokenize the command input.
-   - <b>job.c</b>: Background jobs functionality.
-   - <b>signal.c</b>: Signal functionality.
-   - <b>clist.c</b>: Circular list data structure to store the history.
-   - <b>elist.h</b>: Elastic list data structure built from scratch.
+   - <b>miner.c</b>: The program driver. Take user input and split the tasks to consumers.
+   - <b>sha1.c</b>: The magic black box of hash function that nobody understands.
+   - <b>elist.c</b>: Elastic list data structure built from scratch.
    - <b>logger.h</b>: Helps facilitate debugging by providing basic logging functionality. 
-There are also header files mine.h, sha1.h, signal.h, history.h, clist.h and ui.h.
+There are also header files mine.h, sha1.h, and elist.h.
 
 
 To compile and run:

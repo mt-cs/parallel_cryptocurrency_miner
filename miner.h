@@ -26,6 +26,24 @@ void print_binary32(uint32_t num);
  */
 int get_strtol(char *num);
 
-int get_bitcount(unsigned char x);
+/**
+ * Calling elist create to create a task
+ * @param first_nonce_in_range the first nonce in range
+ */
+void create_task(uint64_t first_nonce_in_range);
+
+/**
+ * Printing to binary
+ * @param num difficulty mask
+ */ 
+void print_binary32(uint32_t num);
+
+/**
+ * consumer work method
+ * @param ptr void pointer for the threads
+ */ 
+void *consumer_thread(void *ptr);
+
+
 
 #endif
