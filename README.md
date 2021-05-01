@@ -24,7 +24,7 @@ Number of threads: 4
 Solution found by thread 3:
 Nonce: 10211906
  Hash: 0000001209850F7AB3EC055248EE4F1B032D39D0
-10221196 hashes in 5.63s (39312292.30 hashes/sec)
+10221196 hashes in 5.64s (1758624.24 hashes/sec)
 ```
 In this example, 4 threads are used to find the solution to the block: the nonce that satisfies the given difficulty (24 leading zeros in this case). 
 
