@@ -10,6 +10,16 @@ Bitcoin mining (and many others) are based on Hashcash. The idea behind these sy
 
 In Bitcoin, hash inversions are the computationally expensive problem being solved by the computer. Given a block, the algorithm tries to find a nonce (number only used once) that when combined with the block data produces a hash code with a set amount of leading zeros. The more leading zeros requested, the harder the problem is to solve. This program searches for the nonce that satisfies a given difficulty level by splitting the work across multiple threads.
 
+### Included Files
+There are several files included. These are:
+   - <b>Makefile</b>: Including to compile and run the program.
+   - <b>miner.c</b>: The program driver. Take user input and split the tasks to consumers.
+   - <b>sha1.c</b>: The magic black box of hash function that nobody understands.
+   - <b>elist.c</b>: Elastic list data structure built from scratch.
+   - <b>logger.h</b>: Helps facilitate debugging by providing basic logging functionality.  
+
+There are also header files mine.h, sha1.h, and elist.h.
+
 ### Demo Run
 Here’s a demo run for the completed, parallel version of the program:
 ```bash
@@ -36,15 +46,6 @@ echo -n 'Hello CS 521!!!10211906' | sha1sum
 0000001209850f7ab3ec055248ee4f1b032d39d0
 ```
 Note that the resulting hash has 6 zeros, which is what we’d expect: 24 bit difficulty means 6 hex characters worth of zeros (24 / 4 = 6).
-
-### Included Files
-There are several files included. These are:
-   - <b>Makefile</b>: Including to compile and run the program.
-   - <b>miner.c</b>: The program driver. Take user input and split the tasks to consumers.
-   - <b>sha1.c</b>: The magic black box of hash function that nobody understands.
-   - <b>elist.c</b>: Elastic list data structure built from scratch.
-   - <b>logger.h</b>: Helps facilitate debugging by providing basic logging functionality.  
-There are also header files mine.h, sha1.h, and elist.h.
 
 
 To compile and run:
