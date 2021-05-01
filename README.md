@@ -43,7 +43,7 @@ There are several files included. These are:
    - <b>miner.c</b>: The program driver. Take user input and split the tasks to consumers.
    - <b>sha1.c</b>: The magic black box of hash function that nobody understands.
    - <b>elist.c</b>: Elastic list data structure built from scratch.
-   - <b>logger.h</b>: Helps facilitate debugging by providing basic logging functionality.\ 
+   - <b>logger.h</b>: Helps facilitate debugging by providing basic logging functionality.  
 There are also header files mine.h, sha1.h, and elist.h.
 
 
