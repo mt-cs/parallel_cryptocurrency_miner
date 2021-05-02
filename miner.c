@@ -111,22 +111,35 @@ uint64_t mine(char *data_block, uint32_t difficulty_mask,
 }
 
 void *consumer_thread(void *ptr) {
-    pthread_detach(pthread_self());
+    //pthread_detach(pthread_self());
     struct thread_struct* thread_data = (struct thread_struct*) ptr;
 
     while (true) {
         pthread_mutex_lock(&mutex);
         while (elist_size(task_list) == 0) { 
+            if (final_result_nonce != 0) {
+                pthread_mutex_unlock(&mutex);
+                LOG("[%d]: exit\n", thread_data->thread_count); 
+                return 0;
+            }
+           LOG("[%d]: gonna wait.\n", thread_data->thread_count); 
             pthread_cond_wait(&condc, &mutex); // sleep until signaled
-            //LOG("Consumer is sleeping %lu\n", elist_size(task_list));
+            LOG("[%d]: woke up\n", thread_data->thread_count); 
+            // LOG("Consumer is sleeping %lu\n", elist_size(task_list));
+            if (final_result_nonce != 0) {
+                pthread_mutex_unlock(&mutex);
+                LOG("[%d]: exit\n", thread_data->thread_count); 
+                return 0;
+            }
         }
+
         u_int64_t *p_task_consumed = elist_get(task_list, 0);
         u_int64_t task_consumed = *p_task_consumed;
         elist_remove(task_list, 0);
-        //LOG("Consuming: %lu\n", task_consumed); // print consuming
+        // LOG("Consuming: %lu\n", task_consumed); // print consuming
 
         /* Wake up the producer */
-        pthread_cond_signal(&condp); // send signal
+        pthread_cond_signal(&condp); // send signal hey I am consuming
         pthread_mutex_unlock(&mutex); // unlock
 
         uint8_t digest_con[SHA1_HASH_SIZE];
@@ -140,20 +153,22 @@ void *consumer_thread(void *ptr) {
         
         if (nonce != 0) {
             pthread_mutex_lock(&mutex);
+
             if (final_result_nonce == 0 || final_result_nonce > nonce) {
-                LOG("Nonce: %lu, Current final: %lu....\n", nonce, final_result_nonce);
+                LOG("[%d]: Nonce: %lu, Current final: %lu....\n", thread_data->thread_count, nonce, final_result_nonce);
                 final_result_nonce = nonce;
             }
             // final_result_nonce = nonce;
             final_thread = thread_data->thread_count;
             memcpy(final_result_digest, digest_con, sizeof(digest_con));
-            LOG("Found final result nonce: %lu\n", final_result_nonce);
+            LOG("[%d]: Found a nonce: %lu\n", thread_data->thread_count, nonce);
+            pthread_cond_signal(&condp);
             pthread_mutex_unlock(&mutex);
+            LOG("[%d]: Unlock mutex in consumer %lu\n", thread_data->thread_count, nonce);
             break;
         }
     }
-    pthread_cond_signal(&condp); // send signal
-    LOGP("Consumer is signaling that we found the thread\n");
+    //pthread_cond_signal(&condp); // send signal
     //free(thread_data);
     return 0;
 }
@@ -196,7 +211,7 @@ int main(int argc, char *argv[]) {
 
     printf("\n----------- Starting up miner threads!  -----------\n\n");
 
-    task_list = elist_create(num_threads * 4, sizeof(uint64_t));
+    task_list = elist_create(num_threads * 5, sizeof(uint64_t));
 
     pthread_t *threads = malloc(sizeof(pthread_t) * num_threads);
     t_struct **arg_thread = malloc(sizeof(t_struct*) * num_threads);
@@ -215,12 +230,14 @@ int main(int argc, char *argv[]) {
     u_int64_t curr_nonce = 1;
     while (1)
     {
+        LOGP("PLocking\n");
         pthread_mutex_lock(&mutex);
+        LOGP("PLocked\n");
         while (elist_size(task_list) == elist_capacity(task_list)
             && final_result_nonce == 0) { // while list is full keep waiting
-            //LOG("Producer is sleeping %ld\n", elist_size(task_list));
+            // LOG("Producer is sleeping %lu\n", elist_size(task_list));
             pthread_cond_wait(&condp, &mutex); // sleep until they consume it
-            //printf("%ld ", elist_size(task_list));
+            // LOG("Producer woke up %lu\n", elist_size(task_list));
         }
         if (final_result_nonce == 0) {
           create_task(curr_nonce);
@@ -228,7 +245,7 @@ int main(int argc, char *argv[]) {
           pthread_cond_signal(&condc);
           pthread_mutex_unlock(&mutex);
         } else {
-          //pthread_cond_signal(&condc);
+          pthread_cond_broadcast(&condc);
           LOG("Producer received that we found nonce %lu\n", final_result_nonce);
           pthread_mutex_unlock(&mutex);
           break;
@@ -236,12 +253,13 @@ int main(int argc, char *argv[]) {
     }
 
     double end_time = get_time();
-
+LOG("Detaching %lu\n", final_result_nonce);
     // TODO: pthread join
     for (int i = 0; i < num_threads; ++i) {
         // LOG("Joint thread: %d\n", i);
-        // pthread_join(threads[i], NULL);
-        pthread_detach(threads[i]);
+         pthread_join(threads[i], NULL);
+        //pthread_detach(threads[i]);
+        // pthread_cancel(threads[i]);
     }
 
     if (final_result_nonce == 0) {
@@ -261,6 +279,7 @@ int main(int argc, char *argv[]) {
     printf("%llu hashes in %.2fs (%.2f hashes/sec)\n",
             total_inversions, total_time, total_inversions / total_time);
 
+    pthread_mutex_destroy(&mutex);
     elist_destroy(task_list);
     for(int i = 0; i < num_threads; ++i){
         free(arg_thread[i]);
