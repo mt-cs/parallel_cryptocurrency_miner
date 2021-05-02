@@ -111,7 +111,6 @@ uint64_t mine(char *data_block, uint32_t difficulty_mask,
 }
 
 void *consumer_thread(void *ptr) {
-    //pthread_detach(pthread_self());
     struct thread_struct* thread_data = (struct thread_struct*) ptr;
 
     while (true) {
@@ -119,23 +118,17 @@ void *consumer_thread(void *ptr) {
         while (elist_size(task_list) == 0) { 
             if (final_result_nonce != 0) {
                 pthread_mutex_unlock(&mutex);
-                // LOG("[%d]: exit\n", thread_data->thread_id); 
                 return 0;
             }
-            // LOG("[%d]: gonna wait.\n", thread_data->thread_id); 
-            pthread_cond_wait(&condc, &mutex); // sleep until signaled
-            // LOG("[%d]: woke up\n", thread_data->thread_id); 
-            // LOG("Consumer is sleeping %lu\n", elist_size(task_list));
+            pthread_cond_wait(&condc, &mutex);
             if (final_result_nonce != 0) {
                 pthread_mutex_unlock(&mutex);
-                LOG("[%d]: exit\n", thread_data->thread_id); 
                 return 0;
             }
         }
         u_int64_t *p_task_consumed = elist_get(task_list, 0);
         u_int64_t task_consumed = *p_task_consumed;
         elist_remove(task_list, 0);
-        // LOG("Consuming: %lu\n", task_consumed); // print consuming
 
         /* Wake up the producer */
         pthread_cond_signal(&condp); // send signal hey I am consuming
@@ -154,15 +147,12 @@ void *consumer_thread(void *ptr) {
             pthread_mutex_lock(&mutex);
 
             if (final_result_nonce == 0 || final_result_nonce > nonce) {
-                // LOG("[%d]: Nonce: %lu, Current final: %lu....\n", thread_data->thread_id, nonce, final_result_nonce);
                 final_result_nonce = nonce;
             }
             final_thread = thread_data->thread_id;
             memcpy(final_result_digest, digest_con, sizeof(digest_con));
-            // LOG("[%d]: Found a nonce: %lu\n", thread_data->thread_id, nonce);
             pthread_cond_signal(&condp);
             pthread_mutex_unlock(&mutex);
-            // LOG("[%d]: Unlock mutex in consumer %lu\n", thread_data->thread_id, nonce);
             break;
         }
     }
@@ -227,33 +217,27 @@ int main(int argc, char *argv[]) {
     u_int64_t curr_nonce = 1;
     while (1)
     {
-        // LOGP("PLocking\n");
         pthread_mutex_lock(&mutex);
-        // LOGP("PLocked\n");
         while (elist_size(task_list) == elist_capacity(task_list)
             && final_result_nonce == 0) { // while list is full keep waiting
-            // LOG("Producer is sleeping %lu\n", elist_size(task_list));
             pthread_cond_wait(&condp, &mutex); // sleep until they consume it
-            // LOG("Producer woke up %lu\n", elist_size(task_list));
         }
         if (final_result_nonce == 0) {
-          create_task(curr_nonce);
-          curr_nonce += TASK_RANGE;
-          pthread_cond_signal(&condc);
-          pthread_mutex_unlock(&mutex);
+            create_task(curr_nonce);
+            curr_nonce += TASK_RANGE;
+            pthread_cond_signal(&condc);
+            pthread_mutex_unlock(&mutex);
         } else {
-          pthread_cond_broadcast(&condc);
-          // LOG("Producer received that we found nonce %lu\n", final_result_nonce);
-          pthread_mutex_unlock(&mutex);
-          break;
+            pthread_cond_broadcast(&condc);
+            pthread_mutex_unlock(&mutex);
+            break;
         }
     }
 
     double end_time = get_time();
-    LOG("Detaching %lu\n", final_result_nonce);
+ 
     for (int i = 0; i < num_threads; ++i) {
         pthread_join(threads[i], NULL);
-        //pthread_detach(threads[i]);
     }
 
     if (final_result_nonce == 0) {
