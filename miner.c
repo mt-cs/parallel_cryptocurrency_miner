@@ -234,11 +234,11 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    double end_time = get_time();
- 
     for (int i = 0; i < num_threads; ++i) {
         pthread_join(threads[i], NULL);
     }
+    
+    double end_time = get_time();
 
     if (final_result_nonce == 0) {
         printf("No solution found!\n");
