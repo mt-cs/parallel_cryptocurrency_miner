@@ -195,6 +195,8 @@ int main(int argc, char *argv[]) {
     pthread_t *threads = malloc(sizeof(pthread_t) * num_threads);
     t_struct **arg_thread = malloc(sizeof(t_struct*) * num_threads);
 
+    double start_time = get_time();
+
     for (int i = 0; i < num_threads; ++i) {    
         arg_thread[i] = malloc(sizeof(t_struct));
         arg_thread[i]->difficulty_mask = difficulty_mask;
@@ -202,8 +204,6 @@ int main(int argc, char *argv[]) {
         arg_thread[i]->thread_id = i;
         pthread_create(&threads[i], NULL, consumer_thread, (void *)arg_thread[i]);
     }
-
-    double start_time = get_time();
 
     u_int64_t curr_nonce = 1;
     while (1)
