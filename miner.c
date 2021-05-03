@@ -64,7 +64,6 @@ double get_time()
 
 void create_task(uint64_t first_nonce_in_range) {
     elist_add(task_list, &first_nonce_in_range);
-    // LOG("Add task: %lu\n", first_nonce_in_range);
 }
 
 void print_binary32(uint32_t num) {
