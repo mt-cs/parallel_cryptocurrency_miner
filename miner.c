@@ -115,16 +115,12 @@ void *consumer_thread(void *ptr) {
 
     while (true) {
         pthread_mutex_lock(&mutex);
-        while (elist_size(task_list) == 0) { 
-            if (final_result_nonce != 0) {
-                pthread_mutex_unlock(&mutex);
-                return 0;
-            }
+        while (elist_size(task_list) == 0 && final_result_nonce == 0) { 
             pthread_cond_wait(&condc, &mutex);
-            if (final_result_nonce != 0) {
-                pthread_mutex_unlock(&mutex);
-                return 0;
-            }
+        }
+        if (final_result_nonce != 0) {
+            pthread_mutex_unlock(&mutex);
+            return 0;
         }
         u_int64_t *p_task_consumed = elist_get(task_list, 0);
         u_int64_t task_consumed = *p_task_consumed;
@@ -145,7 +141,6 @@ void *consumer_thread(void *ptr) {
         
         if (nonce != 0) {
             pthread_mutex_lock(&mutex);
-
             if (final_result_nonce == 0 || final_result_nonce > nonce) {
                 final_result_nonce = nonce;
             }
@@ -156,8 +151,6 @@ void *consumer_thread(void *ptr) {
             break;
         }
     }
-    // pthread_cond_signal(&condp);
-    // free(thread_data);
     return 0;
 }
 
@@ -208,7 +201,6 @@ int main(int argc, char *argv[]) {
         arg_thread[i]->difficulty_mask = difficulty_mask;
         arg_thread[i]->bitcoin_block_data = bitcoin_block_data;
         arg_thread[i]->thread_id = i;
-        //LOG("Create thread: %d\n", i);
         pthread_create(&threads[i], NULL, consumer_thread, (void *)arg_thread[i]);
     }
 
