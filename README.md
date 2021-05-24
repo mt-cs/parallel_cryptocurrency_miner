@@ -1,6 +1,5 @@
 # Project 3: Parallel Cryptocurrency Miner
 
-Professor: Matthew Malensek\
 Author: Marisa Tania  
 
 ## Program Overview 
