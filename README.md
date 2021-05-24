@@ -26,7 +26,7 @@ Here’s a demo run for the completed, parallel version of the program:
 
 Number of threads: 4
   Difficulty Mask: 00000000000000000000000011111111
-       Block data: [Hello CS 521!!!]
+       Block data: [Hello 2021!!!]
 
 ----------- Starting up miner threads!  -----------
 
@@ -41,7 +41,7 @@ In this example, 4 threads are used to find the solution to the block: the nonce
 To verify that the solution is correct is on the UNIX command line, we can test this with the sha1sum utility. In this example, block data was 'Hello CS 521!!!' and the nonce of the solution you found was 10211906 with a difficulty level of 24. 
 
 ```bash
-echo -n 'Hello CS 521!!!10211906' | sha1sum
+echo -n 'Hello 2021!!!10211906' | sha1sum
 0000001209850f7ab3ec055248ee4f1b032d39d0
 ```
 Note that the resulting hash has 6 zeros, which is what we’d expect: 24 bit difficulty means 6 hex characters worth of zeros (24 / 4 = 6).
