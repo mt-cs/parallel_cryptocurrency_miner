@@ -1,4 +1,4 @@
-# Project 3: Parallel Cryptocurrency Miner
+# Parallel Cryptocurrency Miner
 
 Author: Marisa Tania  
 
@@ -22,7 +22,7 @@ There are also header files mine.h, sha1.h, and elist.h.
 ### Demo Run
 Here’s a demo run for the completed, parallel version of the program:
 ```bash
-./miner 4 24 'Hello CS 521!!!'
+./miner 4 24 'Hello 2021!!!'
 
 Number of threads: 4
   Difficulty Mask: 00000000000000000000000011111111
@@ -69,6 +69,5 @@ make test run=4
 make test run='4 8 12'
 ```
 
-See spec here: https://www.cs.usfca.edu/~mmalensek/cs521/assignments/project-3.html
 
 
